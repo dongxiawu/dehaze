@@ -22,7 +22,7 @@ cv::Mat calcMinChannel(const cv::Mat& src)
     return minChannel;
 }
 
-cv::Mat calcDarkChannel(const cv::Mat& src, const int r)
+cv::Mat calcDarkChannel(const cv::Mat& src, int r)
 {
     Mat minChannel = calcMinChannel(src);
 

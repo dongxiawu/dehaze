@@ -8,6 +8,6 @@
 #include <opencv2/opencv.hpp>
 
 cv::Mat calcMinChannel(const cv::Mat& src);
-cv::Mat calcDarkChannel(const cv::Mat& src, const int r);
+cv::Mat calcDarkChannel(const cv::Mat& src, int r);
 
 #endif //DEHAZE_DARKCHANNEL_H

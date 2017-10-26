@@ -7,7 +7,7 @@ using namespace std;
 cv::Vec3f estimateAtmosphericLight(const Mat& src, int r, double topRatio){
     CV_Assert(src.channels() == 3);
 
-    Mat darkChannel = calculationDarkChannel(src,r);
+    Mat darkChannel = calcDarkChannel(src,r);
 
     Vec3f atmosphericLight = Vec3f(0,0,0);
 
