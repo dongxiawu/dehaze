@@ -32,8 +32,11 @@ int main(int argc, char *argv[]) {
     const double eps = 10E-6;
 
     Mat src = imread(imgName);
+    //输出图片大小
+    cout<<"图片大小为: "<<src.rows <<"*" << src.cols<<endl;
 
-    imshow("source image",src);
+    //开始计时
+    double start =clock();
 
     //图片必须为彩色图片
     CV_Assert(!src.empty() && src.channels() == 3);
@@ -48,13 +51,19 @@ int main(int argc, char *argv[]) {
     //计算投射图
     Mat transmission = estimateTransmission(src, atmosphericLight,filterRadius*2+1, omega, eps);
 
-    imshow("transmission map",transmission);
-
     //恢复图像
     Mat recoverImage = recover(src,transmission,atmosphericLight,t0);
 
     recoverImage.convertTo(recoverImage,CV_8UC3,255);
 
+    //停止计时
+    double stop = clock();
+
+    //输出耗时
+    cout<<"恢复图片耗时: "<<(stop-start)/CLOCKS_PER_SEC*1000 <<"ms"<<endl;
+
+    imshow("source image",src);
+    imshow("transmission map",transmission);
     imshow("recover image",recoverImage);
 
     waitKey(0);
