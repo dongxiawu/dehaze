@@ -1,3 +1,4 @@
+#include <fastguidedfilter.h>
 #include "transmission.h"
 #include "darkchannel.h"
 #include "guidedfilter.h"
@@ -21,8 +22,13 @@ cv::Mat estimateTransmission(const Mat& src, Vec3f atmosphericLight,int r, doubl
 
     Mat transmission = 1.0 - omega * darkChannel;
 
+//    Mat gray;
+//    cvtColor(src,gray,CV_BGR2GRAY);
+
     //导向滤波耗时30ms左右
-    transmission = guidedFilter(src, transmission, 8*r, eps);
+//    transmission = guidedFilter(src, transmission, 8*r, eps);
+
+    transmission = fastGuidedFilter(src, transmission, 8*r, eps);
 
     return transmission;
 }

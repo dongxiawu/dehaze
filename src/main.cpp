@@ -10,12 +10,14 @@ using namespace cv;
 int main(int argc, char *argv[]) {
 
     //传入参数没有图片信息，退出
-    if(argc < 2){
-        cout << "no input image"<<endl;
-        return -1;
-    }
+//    if(argc < 2){
+//        cout << "no input image"<<endl;
+//        return -1;
+//    }
+//
+//    const string imgName = argv[1];
 
-    const string imgName = argv[1];
+    const string imgName = "images/canon3.bmp";
 
     const int filterRadius = 7;
 
