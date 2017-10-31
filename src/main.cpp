@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
     const double eps = 10E-6;
 
     Mat src = imread(imgName);
+
     //输出图片大小
     cout<<"图片大小为: "<<src.rows <<"*" << src.cols<<endl;
 
@@ -46,10 +47,10 @@ int main(int argc, char *argv[]) {
     }
 
     //计算大气光
-    Vec3f atmosphericLight = estimateAtmosphericLight(src,filterRadius*2+1,topRatio);
+    Vec3f atmosphericLight = estimateAtmosphericLight(src,filterRadius,topRatio);
 
     //计算投射图
-    Mat transmission = estimateTransmission(src, atmosphericLight,filterRadius*2+1, omega, eps);
+    Mat transmission = estimateTransmission(src, atmosphericLight,filterRadius, omega, eps);
 
     //恢复图像
     Mat recoverImage = recover(src,transmission,atmosphericLight,t0);
