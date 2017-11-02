@@ -55,10 +55,10 @@ cv::Vec3b EstimationAtmosphericLight(const cv::Mat& src){
     // compare to threshold(200) --> bigger than threshold, divide the block
     while (width * height >200){
 
-        cv::Mat upperLeft(src,cv::Rect(0, 0, width/2, height/2));
-        cv::Mat upperRight(src,cv::Rect(width/2+width%2, 0, width/2, height/2));
-        cv::Mat lowerLeft(src,cv::Rect(0,height/2+height%2,width/2,height/2));
-        cv::Mat lowerRight(src,cv::Rect(width/2+width%2,height/2+height%2,width/2,height/2));
+        cv::Mat upperLeft(roi,cv::Rect(0, 0, width/2, height/2));
+        cv::Mat upperRight(roi,cv::Rect(width/2+width%2, 0, width/2, height/2));
+        cv::Mat lowerLeft(roi,cv::Rect(0,height/2+height%2,width/2,height/2));
+        cv::Mat lowerRight(roi,cv::Rect(width/2+width%2,height/2+height%2,width/2,height/2));
 
         double maxScore = 0,curScore;
         int maxIndex =0;
