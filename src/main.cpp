@@ -10,12 +10,13 @@ using namespace cv;
 int main(int argc, char *argv[]) {
 
     //传入参数没有图片信息，退出
-    if(argc < 2){
-        cout << "no input image"<<endl;
-        return -1;
-    }
-
-    const string imgName = argv[1];
+//    if(argc < 2){
+//        cout << "no input image"<<endl;
+//        return -1;
+//    }
+//
+//    const string imgName = argv[1];
+    const string imgName = "images/canon3.bmp";
 
     const int filterRadius = 7;
 
@@ -41,13 +42,17 @@ int main(int argc, char *argv[]) {
 
     //图片必须为彩色图片
     CV_Assert(!src.empty() && src.channels() == 3);
+
+    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
+//    Mat transmission = EstimationTransmission(src, atmosphericLight,filterRadius, omega, eps);
+//    transmission.convertTo(transmission,CV_32FC1,1.0/255.0);
     //图片归一化
     if (src.type() != CV_32FC3){
         src.convertTo(src,CV_32FC3,1.0/255.0);
     }
 
     //计算大气光
-    Vec3f atmosphericLight = estimateAtmosphericLight(src,filterRadius,topRatio);
+//    Vec3f atmosphericLight = estimateAtmosphericLight(src,filterRadius,topRatio);
 
     //计算投射图
     Mat transmission = estimateTransmission(src, atmosphericLight,filterRadius, omega, eps);
