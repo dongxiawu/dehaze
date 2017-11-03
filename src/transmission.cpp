@@ -19,17 +19,26 @@ cv::Mat estimateTransmission(const Mat& src, Vec3f atmosphericLight,int r, doubl
     merge(channels,normalized);
 
     Mat darkChannel = calcDarkChannel(normalized,r);
-
+    imshow("dark channel",darkChannel);
     Mat transmission = 1.0 - omega * darkChannel;
 
-//    Mat gray;
-//    cvtColor(src,gray,CV_BGR2GRAY);
+    float k = 0.3;
+    transmission = min(max(k/abs(1-darkChannel),1).mul(transmission),1);
+//    double minValue;
+//    minMaxLoc(transmission,&minValue);
+//
+//    transmission = transmission+0.01-minValue;
+//    transmission = min(transmission,1);
 
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(src, transmission, 8*r, eps);
 
     transmission = fastGuidedFilter(src, transmission, 8*r, eps);
+    imshow("transmission",transmission);
 
+    Mat th;
+    threshold(darkChannel,th,0.6,1,THRESH_BINARY_INV);
+    imshow("th",th);
     return transmission;
 }
 

@@ -11,8 +11,8 @@ cv::Mat recover(const cv::Mat& src, const cv::Mat& transmission, Vec3f atmospher
 	vector<Mat> channels;
 	split(src,channels);
 
-	Mat t = max(t0,transmission);
-
+//	Mat t = max(t0,transmission);
+	Mat t = transmission;
 	channels[0] = (channels[0]-atmosphericLight[0])/t + atmosphericLight[0];
 	channels[1] = (channels[1]-atmosphericLight[1])/t + atmosphericLight[1];
 	channels[2] = (channels[2]-atmosphericLight[2])/t + atmosphericLight[2];

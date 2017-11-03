@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     }
 
     const string fileName = argv[1];
+//    const string fileName = "images/4.png";
     const int type = judgeFileType(fileName);
 
     const int filterRadius = 7;
@@ -152,11 +153,11 @@ Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, doub
     //图片必须为彩色图片
     CV_Assert(!src.empty() && src.channels() == 3);
 
-//    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
-//    Vec3f a = atmosphericLight;
-//    a[0] = (float)(atmosphericLight[0]/255.0);
-//    a[1] = (float)(atmosphericLight[1]/255.0);
-//    a[2] = (float)(atmosphericLight[2]/255.0);
+    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
+    Vec3f a = atmosphericLight;
+    a[0] = (float)(atmosphericLight[0]/255.0);
+    a[1] = (float)(atmosphericLight[1]/255.0);
+    a[2] = (float)(atmosphericLight[2]/255.0);
 
     Mat fSrc;
     src.convertTo(fSrc,CV_32FC3,1.0/255.0);
@@ -166,8 +167,10 @@ Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, doub
 //    }
 
     //计算大气光
-    Vec3f atmosphericLight = estimateAtmosphericLight(fSrc,r,topRatio);
-    Vec3f a = atmosphericLight;
+//    Vec3f atmosphericLight = estimateAtmosphericLight(fSrc,r,topRatio);
+//    Vec3f a = atmosphericLight;
+
+    cout<<"大气光"<<a<<endl;
 
     //计算投射图
     Mat transmission = estimateTransmission(fSrc, a,r, omega, eps);
