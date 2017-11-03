@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regex>
 #include "darkchannel.h"
 #include "atmosphericlight.h"
 #include "transmission.h"
@@ -9,17 +10,18 @@ using namespace cv;
 
 void gammaCorrection(Mat& src, Mat& dst, float fGamma);
 Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, double eps);
+int judgeFileType(string fileName);
 
 int main(int argc, char *argv[]) {
 
-    //传入参数没有图片信息，退出
-    if(argc < 3){
+//    传入参数没有图片信息，退出
+    if(argc < 2){
         cout << "参数错误"<<endl;
         return -1;
     }
 
     const string fileName = argv[1];
-    const int type = atoi(argv[2]);
+    const int type = judgeFileType(fileName);
 
     const int filterRadius = 7;
 
@@ -38,11 +40,22 @@ int main(int argc, char *argv[]) {
 
     if(type == 0){
         Mat src = imread(fileName);
+        imshow("source image",src);
+        //输出图片大小
+        cout<<"图片大小为: "<<src.rows <<"*" << src.cols<<endl;
+        //开始计时
+        double start =clock();
+        Mat recover = dehaze(src,filterRadius,topRatio,t0,omega,eps);
+        //停止计时
+        double stop = clock();
 
-        dehaze(src,filterRadius,topRatio,t0,omega,eps);
+        //输出耗时
+        cout<<"恢复图片耗时: "<<(stop-start)/CLOCKS_PER_SEC*1000 <<"ms"<<endl;
+
+        imshow("recover image",recover);
 
         waitKey(0);
-    } else{
+    } else if(type == 1){
         VideoCapture videoCapture(fileName);
         if (!videoCapture.isOpened()){
             cout<<"视频打开失败"<<endl;
@@ -53,6 +66,10 @@ int main(int argc, char *argv[]) {
         int frameHeight = videoCapture.get(CAP_PROP_FRAME_HEIGHT);
         double rate = videoCapture.get(CAP_PROP_FPS);
 
+        cout<<"视频大小： "<< frameHeight <<"*"<< frameWidth<<endl;
+        cout<<"帧数： "<< totalFrameNumber <<endl;
+        cout<<"帧率： "<< rate <<endl;
+
         long frameStart = 0;
         videoCapture.set(CAP_PROP_POS_FRAMES,frameStart);
         long currentFrame = frameStart;
@@ -62,7 +79,14 @@ int main(int argc, char *argv[]) {
         while(currentFrame < totalFrameNumber){
             Mat image;
             videoCapture.read(image);
+            //开始计时
+            double start =clock();
             image = dehaze(image,filterRadius,topRatio,t0,omega,eps);
+            //停止计时
+            double stop = clock();
+            //输出耗时
+            cout<<"恢复图片耗时: "<<(stop-start)/CLOCKS_PER_SEC*1000 <<"ms"<<endl;
+
             currentFrame++;
             imshow("result",image);
             waitKey(1);
@@ -124,22 +148,16 @@ void gammaCorrection(Mat& src, Mat& dst, float fGamma)
 }
 
 Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, double eps){
-    //输出图片大小
-    cout<<"图片大小为: "<<src.rows <<"*" << src.cols<<endl;
-
-    //开始计时
-    double start =clock();
 
     //图片必须为彩色图片
     CV_Assert(!src.empty() && src.channels() == 3);
 
-    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
-    Vec3f a = atmosphericLight;
-    a[0] = (float)(atmosphericLight[0]/255.0);
-    a[1] = (float)(atmosphericLight[1]/255.0);
-    a[2] = (float)(atmosphericLight[2]/255.0);
-//    Mat transmission = EstimationTransmission(src, atmosphericLight,filterRadius, omega, eps);
-//    transmission.convertTo(transmission,CV_32FC1,1.0/255.0);
+//    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
+//    Vec3f a = atmosphericLight;
+//    a[0] = (float)(atmosphericLight[0]/255.0);
+//    a[1] = (float)(atmosphericLight[1]/255.0);
+//    a[2] = (float)(atmosphericLight[2]/255.0);
+
     Mat fSrc;
     src.convertTo(fSrc,CV_32FC3,1.0/255.0);
     //图片归一化
@@ -148,7 +166,8 @@ Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, doub
 //    }
 
     //计算大气光
-//    Vec3f atmosphericLight = estimateAtmosphericLight(src,filterRadius,topRatio);
+    Vec3f atmosphericLight = estimateAtmosphericLight(fSrc,r,topRatio);
+    Vec3f a = atmosphericLight;
 
     //计算投射图
     Mat transmission = estimateTransmission(fSrc, a,r, omega, eps);
@@ -160,15 +179,21 @@ Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, doub
 
     gammaCorrection(recoverImage,recoverImage,0.7);
 
-    //停止计时
-    double stop = clock();
-
-    //输出耗时
-    cout<<"恢复图片耗时: "<<(stop-start)/CLOCKS_PER_SEC*1000 <<"ms"<<endl;
-
-//    imshow("source image",src);
-//    imshow("transmission map",transmission);
-//    imshow("recover image",recoverImage);
-
     return recoverImage;
+}
+
+int judgeFileType(string fileName){
+    int pos = fileName.find('.');
+    string hz = fileName.substr(pos+1);
+    transform(hz.begin(),hz.end(),hz.begin(),::tolower);
+    regex imagePattern("jpg|png|bmp|jpeg");
+    regex videoPattern("avi|mp4|rm|rmvb|3gp");
+    if (regex_match(hz,imagePattern)){
+        return 0;
+    }
+    if (regex_match(hz,videoPattern)){
+        return 1;
+    }
+    return -1;
+
 }
