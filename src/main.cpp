@@ -153,14 +153,18 @@ Mat dehaze(const Mat& src, int r, double topRatio, double t0, double omega, doub
     //图片必须为彩色图片
     CV_Assert(!src.empty() && src.channels() == 3);
 
-    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
-    Vec3f a = atmosphericLight;
-    a[0] = (float)(atmosphericLight[0]/255.0);
-    a[1] = (float)(atmosphericLight[1]/255.0);
-    a[2] = (float)(atmosphericLight[2]/255.0);
+//    Vec3b atmosphericLight = EstimationAtmosphericLight(src);
+//    Vec3f a = atmosphericLight;
+//    a[0] = (float)(atmosphericLight[0]/255.0);
+//    a[1] = (float)(atmosphericLight[1]/255.0);
+//    a[2] = (float)(atmosphericLight[2]/255.0);
 
     Mat fSrc;
     src.convertTo(fSrc,CV_32FC3,1.0/255.0);
+
+    Vec3f atmosphericLight = MyEstimateAtmosphericLight(fSrc,r);
+    Vec3f a = atmosphericLight;
+
     //图片归一化
 //    if (src.type() != CV_32FC3){
 //        src.convertTo(src,CV_32FC3,1.0/255.0);

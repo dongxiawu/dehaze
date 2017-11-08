@@ -11,5 +11,4 @@
 #include <opencv2/opencv.hpp>
 
 cv::Mat estimateTransmission(const cv::Mat& src, cv::Vec3f atmosphericLight,int r, double omega, double eps);
-cv::Mat EstimationTransmission(const cv::Mat& src, cv::Vec3b atmosphericLight, int r, double omega, double eps);
 #endif /* TRANSMISSION_H_ */

@@ -137,3 +137,38 @@ cv::Vec3b EstimationAtmosphericLight(const cv::Mat& src){
     return atmosphericLight;
 }
 
+cv::Vec3f MyEstimateAtmosphericLight(const Mat& src, int r){
+    CV_Assert(src.channels() == 3);
+
+    Vec3f atmosphericLight(0,0,0);
+
+    Mat minChannel = calcMinChannel(src);
+
+    double maxValue = 0;
+    Mat aimRoi;
+
+    for (int i = 0; i < minChannel.rows; i+=r) {
+        for (int j = 0; j < minChannel.cols; j+=r) {
+            int w = (j+r < minChannel.cols) ? r : minChannel.cols-j;
+            int h = (i+r < minChannel.rows) ? r : minChannel.rows-i;
+            Mat roi(minChannel,Rect(j,i,w,h));
+            cv::Scalar mean, std, score;
+            meanStdDev(roi,mean,std);
+            score = mean -std;
+            if (score.val[0] > maxValue){
+                maxValue = score.val[0];
+                aimRoi = Mat(src,Rect(j,i,w,h));
+            }
+        }
+    }
+
+    cv::Scalar mean,std;
+    meanStdDev(aimRoi,mean,std);
+
+    atmosphericLight[0] = mean.val[0];
+    atmosphericLight[1] = mean.val[1];
+    atmosphericLight[2] = mean.val[2];
+
+    return atmosphericLight;
+}
+
