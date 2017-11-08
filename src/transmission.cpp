@@ -28,7 +28,11 @@ cv::Mat estimateTransmission(const Mat& src, Vec3f atmosphericLight,int r, doubl
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(src, transmission, 8*r, eps);
 
-    transmission = fastGuidedFilter(src, transmission, 8*r, eps);
+    transmission = fastGuidedFilter(src, transmission, 8*r, 4, eps);
+
+//    transmission = guidedFilter(src,transmission,8*r,eps);
+
+    imshow("transmission",transmission);
 
     return transmission;
 }

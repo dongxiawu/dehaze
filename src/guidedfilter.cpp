@@ -4,6 +4,7 @@
 static cv::Mat boxfilter(const cv::Mat &I, int r)
 {
 	cv::Mat result;
+    //均值滤波
 	cv::blur(I, result, cv::Size(2*r+1, 2*r+1));
 	return result;
 }

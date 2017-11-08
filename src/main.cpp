@@ -15,13 +15,14 @@ int judgeFileType(string fileName);
 int main(int argc, char *argv[]) {
 
 //    传入参数没有图片信息，退出
-    if(argc < 2){
-        cout << "参数错误"<<endl;
-        return -1;
-    }
+//    if(argc < 2){
+//        cout << "参数错误"<<endl;
+//        return -1;
+//    }
+//
+//    const string fileName = argv[1];
+    const string fileName = "images/canon3.bmp";
 
-    const string fileName = argv[1];
-//    const string fileName = "images/4.png";
     const int type = judgeFileType(fileName);
 
     const int filterRadius = 7;

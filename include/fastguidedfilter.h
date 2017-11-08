@@ -12,7 +12,7 @@ class FastGuidedFilterImpl;
 class FastGuidedFilter
 {
 public:
-    FastGuidedFilter(const cv::Mat &I, int r, double eps);//构造函数不能是虚函数
+    FastGuidedFilter(const cv::Mat &I, int r, int scaleSize, double eps);//构造函数不能是虚函数
     virtual ~FastGuidedFilter();
 
     cv::Mat filter(const cv::Mat &p, int depth = -1) const;
@@ -30,6 +30,6 @@ private:
  *
  * @return cv::Mat: guided filter mat
 */
-cv::Mat fastGuidedFilter(const cv::Mat &I, const cv::Mat &p, int r, double eps, int depth = -1);
+cv::Mat fastGuidedFilter(const cv::Mat &I, const cv::Mat &p, int r, int scaleSize, double eps, int depth=-1);
 
 #endif //DEHAZE_FASTGUIDEDFILTER_H
