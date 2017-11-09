@@ -71,6 +71,8 @@ int main(int argc, char *argv[]) {
         int frameHeight = videoCapture.get(CAP_PROP_FRAME_HEIGHT);
         double rate = videoCapture.get(CAP_PROP_FPS);
 
+        double frameInterval = 1000.0/rate;
+
         cout<<"视频大小： "<< frameHeight <<"*"<< frameWidth<<endl;
         cout<<"帧数： "<< totalFrameNumber <<endl;
         cout<<"帧率： "<< rate <<endl;
@@ -79,24 +81,33 @@ int main(int argc, char *argv[]) {
         videoCapture.set(CAP_PROP_POS_FRAMES,frameStart);
         long currentFrame = frameStart;
 
+        namedWindow("source");
         namedWindow("result");
 
         DeHaze deHaze(filterRadius, t0, omega, eps);
+        deHaze.setFPS(rate);
         while(currentFrame < totalFrameNumber){
-            Mat image;
-            videoCapture.read(image);
+            Mat source;
+            videoCapture.read(source);
+            imshow("source",source);
             //开始计时
             double start =clock();
 //            image = dehaze(image,filterRadius,topRatio,t0,omega,eps);
-            image = deHaze.videoHazeRemove(image);
+            Mat result = deHaze.videoHazeRemove(source);
             //停止计时
             double stop = clock();
-            //输出耗时
-            cout<<"恢复图片耗时: "<<(stop-start)/CLOCKS_PER_SEC*1000 <<"ms"<<endl;
 
+            double costTime = (stop-start)/CLOCKS_PER_SEC*1000;
+            //输出耗时
+            cout<<"恢复图片耗时: "<< costTime <<"ms"<<endl;
+
+
+            imshow("result",result);
+            if (currentFrame == frameStart){
+                waitKey(0);
+            }
+            waitKey(max(int(frameInterval - costTime),1));
             currentFrame++;
-            imshow("result",image);
-            waitKey(1);
         }
         videoCapture.release();
         waitKey(0);
@@ -200,7 +211,7 @@ int judgeFileType(string fileName){
     string hz = fileName.substr(pos+1);
     transform(hz.begin(),hz.end(),hz.begin(),::tolower);
     regex imagePattern("jpg|png|bmp|jpeg");
-    regex videoPattern("avi|mp4|rm|rmvb|3gp");
+    regex videoPattern("avi|mp4|rm|rmvb|3gp|wmv");
     if (regex_match(hz,imagePattern)){
         return 0;
     }

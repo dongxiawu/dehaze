@@ -16,9 +16,9 @@ public:
 
     cv::Mat imageHazeRemove(const cv::Mat& I);
 
-//    void setVideoFPS(int rate);
-
     cv::Mat videoHazeRemove(const cv::Mat& I);
+
+    void setFPS(int fps);
 
 private:
     cv::Vec3f estimateAtmosphericLight();
@@ -27,20 +27,30 @@ private:
     cv::Mat estimateTransmissionVideo();
     cv::Mat recover();
 
+    void gammaInit(float gmama);
+    void gammaCorrection(cv::Mat& image);
+
 private:
+    //common
     int r;
     double t0;
     double omega;
     double eps;
 
 
+    unsigned char look_up_table[256];
+
     cv::Mat I;
     cv::Vec3f atmosphericLight;
     cv::Mat transmission;
 
-//    std::queue<cv::Vec3f> atmosphericLightQueue;
+    //video
+    cv::Vec3f atmosphericLightSum;
+    std::queue<cv::Vec3f> atmosphericLightQueue;
+    cv::Mat preI;
+    cv::Mat pre_transmission;
 
-    std::vector<cv::Vec3f> atmosphericLightVector;
+    int fps;
 
 };
 

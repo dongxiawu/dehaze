@@ -1,6 +1,7 @@
 //
 // Created by dongxia on 17-11-8.
 //
+#include <guidedfilter.h>
 #include "dehaze.h"
 #include "darkchannel.h"
 #include "fastguidedfilter.h"
@@ -8,57 +9,52 @@
 using namespace cv;
 using namespace std;
 
-static void gammaCorrection(Mat& src, Mat& dst, float fGamma)
-{
-    CV_Assert(src.data);
 
-    // accept only char type matrices
-    CV_Assert(src.depth() != sizeof(uchar));
-
-    // build look up table
-    unsigned char lut[256];
+void DeHaze::setFPS(int fps){
+    this->fps = fps;
+}
+void DeHaze::gammaInit(float gmama){
     for( int i = 0; i < 256; i++ )
     {
-        lut[i] = saturate_cast<uchar>(pow((float)(i/255.0), fGamma) * 255.0f);
+        look_up_table[i] = saturate_cast<uchar>(pow((float)(i/255.0), gmama) * 255.0f);
     }
+}
 
-    dst = src.clone();
-    const int channels = dst.channels();
+void DeHaze::gammaCorrection(cv::Mat& image){
+    CV_Assert(image.data);
+
+    // accept only char type matrices
+    CV_Assert(image.depth() != sizeof(uchar));
+
+//    dst = src.clone();
+    const int channels = image.channels();
     switch(channels)
     {
         case 1:
         {
-
             MatIterator_<uchar> it, end;
-            for( it = dst.begin<uchar>(), end = dst.end<uchar>(); it != end; it++ )
-                //*it = pow((float)(((*it))/255.0), fGamma) * 255.0;
-                *it = lut[(*it)];
-
+            for( it = image.begin<uchar>(), end = image.end<uchar>(); it != end; it++ )
+                *it = look_up_table[(*it)];
             break;
         }
         case 3:
         {
-
             MatIterator_<Vec3b> it, end;
-            for( it = dst.begin<Vec3b>(), end = dst.end<Vec3b>(); it != end; it++ )
+            for( it = image.begin<Vec3b>(), end = image.end<Vec3b>(); it != end; it++ )
             {
-                //(*it)[0] = pow((float)(((*it)[0])/255.0), fGamma) * 255.0;
-                //(*it)[1] = pow((float)(((*it)[1])/255.0), fGamma) * 255.0;
-                //(*it)[2] = pow((float)(((*it)[2])/255.0), fGamma) * 255.0;
-                (*it)[0] = lut[((*it)[0])];
-                (*it)[1] = lut[((*it)[1])];
-                (*it)[2] = lut[((*it)[2])];
+                (*it)[0] = look_up_table[((*it)[0])];
+                (*it)[1] = look_up_table[((*it)[1])];
+                (*it)[2] = look_up_table[((*it)[2])];
             }
-
             break;
-
         }
     }
 }
 
 DeHaze::DeHaze(int r, double t0, double omega, double eps) : r(r), t0(t0), omega(omega), eps(eps)
 {
-
+    gammaInit(0.7);
+    atmosphericLight = Vec3f(0,0,0);
 }
 
 cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
@@ -82,8 +78,8 @@ cv::Mat DeHaze::videoHazeRemove(const cv::Mat& I){
     return recover();
 }
 
+//3-5ms
 cv::Vec3f DeHaze::estimateAtmosphericLight(){
-//    Vec3b atmosphericLight(0,0,0);
 
     Mat minChannel = calcMinChannel(I);
 
@@ -108,11 +104,12 @@ cv::Vec3f DeHaze::estimateAtmosphericLight(){
     cv::Scalar mean,std;
     meanStdDev(aimRoi,mean,std);
 
-    atmosphericLight[0] = mean.val[0];
-    atmosphericLight[1] = mean.val[1];
-    atmosphericLight[2] = mean.val[2];
+    atmosphericLight[0] = static_cast<float> (mean.val[0]);
+    atmosphericLight[1] = static_cast<float> (mean.val[1]);
+    atmosphericLight[2] = static_cast<float> (mean.val[2]);
 
     cout<<"atmosphericLight" << atmosphericLight << endl;
+
     return atmosphericLight;
 }
 
@@ -129,6 +126,9 @@ cv::Mat DeHaze::estimateTransmission(){
     merge(channels,normalized);
 
     Mat darkChannel = calcDarkChannel(normalized,r);
+
+    imshow("dark channel",darkChannel);
+
     transmission = 1.0 - omega * darkChannel;
 
     //透射率修正
@@ -138,11 +138,10 @@ cv::Mat DeHaze::estimateTransmission(){
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(src, transmission, 8*r, eps);
 
+    //10ms左右
     transmission = fastGuidedFilter(I, transmission, 8*r, 4, eps);
 
-//    transmission = guidedFilter(src,transmission,8*r,eps);
-
-    imshow("transmission",transmission);
+//    imshow("transmission",transmission);
 
     return transmission;
 }
@@ -151,19 +150,16 @@ cv::Vec3f DeHaze::estimateAtmosphericLightVideo(){
 
     atmosphericLight = estimateAtmosphericLight();
 
-    while (atmosphericLightVector.size() < 15){
-        atmosphericLightVector.push_back(atmosphericLight);
+    while (atmosphericLightQueue.size() < fps*2){
+        atmosphericLightQueue.push(atmosphericLight);
+        atmosphericLightSum += atmosphericLight;
     }
 
-    Vec3f sum(0,0,0);
+    atmosphericLight = atmosphericLightSum/(fps*2);
 
-    for (int i =0;i<atmosphericLightVector.size();i++) {
-        sum += atmosphericLightVector[i];
-    }
+    atmosphericLightSum -= atmosphericLightQueue.front();
+    atmosphericLightQueue.pop();
 
-    atmosphericLightVector.erase(atmosphericLightVector.begin());
-
-    atmosphericLight = sum/15;
     return atmosphericLight;
 }
 
@@ -180,18 +176,40 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
     merge(channels,normalized);
 
     Mat darkChannel = calcDarkChannel(normalized,r);
+
     transmission = 1.0 - omega * darkChannel;
 
     //透射率修正
-    float k = 0.3;
+    float k = 0.2;
     transmission = min(max(k/abs(1-darkChannel),1).mul(transmission),1);
 
     //导向滤波耗时30ms左右
-//    transmission = guidedFilter(src, transmission, 8*r, eps);
+//    transmission = guidedFilter(I, transmission, 8*r, eps);
 
+    //10ms左右
     transmission = fastGuidedFilter(I, transmission, 8*r, 4, eps);
 
-//    transmission = guidedFilter(src,transmission,8*r,eps);
+
+    //截断，这里应该处理  3-5ms
+    for (int i = 0; i < transmission.rows; i+=r) {
+        for (int j = 0; j < transmission.cols; j+=r) {
+            int w = (j+r < transmission.cols) ? r : transmission.cols-j;
+            int h = (i+r < transmission.rows) ? r : transmission.rows-i;
+            Mat roi(transmission,Rect(j,i,w,h));
+            cv::Scalar mean, std, score;
+            meanStdDev(roi,mean,std);
+            score = mean -std;
+//            cout<<score<<endl;
+            if (score.val[0] < 0.04){
+                int x = j > r? j-r:0;
+                int y = i > r? i-r:0;
+                int ww = (x+2*r < transmission.cols) ? 2*r : transmission.cols-x;
+                int hh = (y+2*r < transmission.rows) ? 2*r : transmission.rows-y;
+                Mat filterRoi(transmission,Rect(x,y,ww,hh));
+                GaussianBlur(filterRoi,filterRoi,Size(2*r+1,2*r+1),0,0);
+            }
+        }
+    }
 
     imshow("transmission",transmission);
 
@@ -213,8 +231,7 @@ cv::Mat DeHaze::recover(){
     merge(channels,recover);
 
     recover.convertTo(recover,CV_8UC3,255);
-
-    gammaCorrection(recover,recover,0.7);//耗时较大
+    gammaCorrection(recover);//耗时较大 不过还是有必要的 10ms左右 可以考虑别的矫正方法YUV
 
     return recover;
 }
