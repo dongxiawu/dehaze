@@ -4,6 +4,7 @@
 #include "atmosphericlight.h"
 #include "transmission.h"
 #include "recover.h"
+#include "dehaze.h"
 
 using namespace std;
 using namespace cv;
@@ -15,13 +16,13 @@ int judgeFileType(string fileName);
 int main(int argc, char *argv[]) {
 
 //    传入参数没有图片信息，退出
-//    if(argc < 2){
-//        cout << "参数错误"<<endl;
-//        return -1;
-//    }
-//
-//    const string fileName = argv[1];
-    const string fileName = "images/canon3.bmp";
+    if(argc < 2){
+        cout << "参数错误"<<endl;
+        return -1;
+    }
+
+    const string fileName = argv[1];
+//    const string fileName = "images/canon3.bmp";
 
     const int type = judgeFileType(fileName);
 
@@ -47,7 +48,9 @@ int main(int argc, char *argv[]) {
         cout<<"图片大小为: "<<src.rows <<"*" << src.cols<<endl;
         //开始计时
         double start =clock();
-        Mat recover = dehaze(src,filterRadius,topRatio,t0,omega,eps);
+        DeHaze deHaze(filterRadius,t0,omega,eps);
+        Mat recover = deHaze.imageHazeRemove(src);
+//        Mat recover = dehaze(src,filterRadius,topRatio,t0,omega,eps);
         //停止计时
         double stop = clock();
 
@@ -78,12 +81,14 @@ int main(int argc, char *argv[]) {
 
         namedWindow("result");
 
+        DeHaze deHaze(filterRadius, t0, omega, eps);
         while(currentFrame < totalFrameNumber){
             Mat image;
             videoCapture.read(image);
             //开始计时
             double start =clock();
-            image = dehaze(image,filterRadius,topRatio,t0,omega,eps);
+//            image = dehaze(image,filterRadius,topRatio,t0,omega,eps);
+            image = deHaze.videoHazeRemove(image);
             //停止计时
             double stop = clock();
             //输出耗时
