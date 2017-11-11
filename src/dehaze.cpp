@@ -178,6 +178,7 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
     Mat darkChannel = calcDarkChannel(normalized,r);
 
     transmission = 1.0 - omega * darkChannel;
+//    imshow("transmission before filter",transmission);
 
     //透射率修正
     float k = 0.2;
@@ -189,27 +190,37 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
     //10ms左右
     transmission = fastGuidedFilter(I, transmission, 8*r, 4, eps);
 
-
-    //截断，这里应该处理  3-5ms
-    for (int i = 0; i < transmission.rows; i+=r) {
-        for (int j = 0; j < transmission.cols; j+=r) {
-            int w = (j+r < transmission.cols) ? r : transmission.cols-j;
-            int h = (i+r < transmission.rows) ? r : transmission.rows-i;
+    //熵值 提高对比度
+    //retinex
+    int num = 0;
+//    //截断，这里应该处理  3-5ms
+    for ( int i = 0; i < transmission.rows; i+=(2*r+1) ) {
+        for (int j = 0; j < transmission.cols; j+=(2*r+1) ) {
+            int w = (j+(2*r+1) < transmission.cols) ? 2*r+1 : transmission.cols-j;
+            int h = (i+(2*r+1) < transmission.rows) ? 2*r+1 : transmission.rows-i;
             Mat roi(transmission,Rect(j,i,w,h));
+
+            //计算熵值
             cv::Scalar mean, std, score;
             meanStdDev(roi,mean,std);
             score = mean -std;
-//            cout<<score<<endl;
-            if (score.val[0] < 0.04){
-                int x = j > r? j-r:0;
-                int y = i > r? i-r:0;
-                int ww = (x+2*r < transmission.cols) ? 2*r : transmission.cols-x;
-                int hh = (y+2*r < transmission.rows) ? 2*r : transmission.rows-y;
-                Mat filterRoi(transmission,Rect(x,y,ww,hh));
-                GaussianBlur(filterRoi,filterRoi,Size(2*r+1,2*r+1),0,0);
+
+//            cout<<"std:"<<std<<endl;
+
+            if (std.val[0] < 0.012){
+//                num++;
+//                int x = j > 2*w ? j-2*w:0;
+//                int y = i > 2*h ? i-2*h:0;
+//                int ww = (x+2*r < transmission.cols) ? 2*r : transmission.cols-x;
+//                int hh = (y+2*r < transmission.rows) ? 2*r : transmission.rows-y;
+//                Mat filterRoi(transmission,Rect(x,y,ww,hh));
+//                GaussianBlur(filterRoi,filterRoi,Size(2*r+1,2*r+1),0,0);
+//                cout<<"(x,y)="<<j <<" "<< i<<endl;
+//                GaussianBlur(roi,roi,Size(2*r+1,2*r+1),0,0);
             }
         }
     }
+    cout <<"num:"<<num<<endl;
 
     imshow("transmission",transmission);
 
