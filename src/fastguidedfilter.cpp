@@ -118,7 +118,7 @@ cv::Mat FastGuidedFilterMono::filterSingleChannel(const cv::Mat &p) const
 {
     cv::Mat p_temp;
 
-    cv::resize(p,p_temp,cv::Size(p.cols,p.rows));
+    cv::resize(p,p_temp,cv::Size(p.cols/scaleSize,p.rows/scaleSize));
 
     cv::Mat mean_p = boxfilter(p_temp, r_temp);
     cv::Mat mean_Ip = boxfilter(I_temp.mul(p_temp), r_temp);

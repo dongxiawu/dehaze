@@ -16,9 +16,11 @@ int main(int argc, char *argv[]) {
     }
 
     const string fileName = argv[1];
-//    const string fileName = "videos/2.wmv";
-//    const String saveFileName = "videos/2_recover.wmv";
     const String saveFileName = argc >=3 ? argv[2] : "";
+//
+//    const string fileName = "images/canon3.bmp";
+//    const String saveFileName = "";
+
 
     const int type = judgeFileType(fileName);
 
@@ -50,7 +52,7 @@ int main(int argc, char *argv[]) {
         double stop = clock();
 
         //保存图片
-        if (saveFileName != NULL){
+        if (saveFileName.compare("")!=0){
             imwrite(saveFileName,recover);
         }
 

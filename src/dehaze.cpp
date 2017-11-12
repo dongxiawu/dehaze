@@ -138,8 +138,10 @@ cv::Mat DeHaze::estimateTransmission(){
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(src, transmission, 8*r, eps);
 
+    Mat gray;
+    cvtColor(I,gray,CV_BGR2GRAY);
     //10ms左右
-    transmission = fastGuidedFilter(I, transmission, 8*r, 4, eps);
+    transmission = fastGuidedFilter(gray, transmission, 8*r, 4, eps);
 
 //    imshow("transmission",transmission);
 
@@ -187,27 +189,30 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(I, transmission, 8*r, eps);
 
+    Mat gray;
+    cvtColor(I,gray,CV_BGR2GRAY);
+
     //10ms左右
-    transmission = fastGuidedFilter(I, transmission, 8*r, 4, eps);
+    transmission = fastGuidedFilter(gray, transmission, 8*r, 4, eps);
 
     //熵值 提高对比度
     //retinex
-    int num = 0;
-//    //截断，这里应该处理  3-5ms
-    for ( int i = 0; i < transmission.rows; i+=(2*r+1) ) {
-        for (int j = 0; j < transmission.cols; j+=(2*r+1) ) {
-            int w = (j+(2*r+1) < transmission.cols) ? 2*r+1 : transmission.cols-j;
-            int h = (i+(2*r+1) < transmission.rows) ? 2*r+1 : transmission.rows-i;
-            Mat roi(transmission,Rect(j,i,w,h));
-
-            //计算熵值
-            cv::Scalar mean, std, score;
-            meanStdDev(roi,mean,std);
-            score = mean -std;
-
-//            cout<<"std:"<<std<<endl;
-
-            if (std.val[0] < 0.012){
+//    int num = 0;
+////    //截断，这里应该处理  3-5ms
+//    for ( int i = 0; i < transmission.rows; i+=(2*r+1) ) {
+//        for (int j = 0; j < transmission.cols; j+=(2*r+1) ) {
+//            int w = (j+(2*r+1) < transmission.cols) ? 2*r+1 : transmission.cols-j;
+//            int h = (i+(2*r+1) < transmission.rows) ? 2*r+1 : transmission.rows-i;
+//            Mat roi(transmission,Rect(j,i,w,h));
+//
+//            //计算熵值
+//            cv::Scalar mean, std, score;
+//            meanStdDev(roi,mean,std);
+//            score = mean -std;
+//
+////            cout<<"std:"<<std<<endl;
+//
+//            if (std.val[0] < 0.012){
 //                num++;
 //                int x = j > 2*w ? j-2*w:0;
 //                int y = i > 2*h ? i-2*h:0;
@@ -217,10 +222,10 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
 //                GaussianBlur(filterRoi,filterRoi,Size(2*r+1,2*r+1),0,0);
 //                cout<<"(x,y)="<<j <<" "<< i<<endl;
 //                GaussianBlur(roi,roi,Size(2*r+1,2*r+1),0,0);
-            }
-        }
-    }
-    cout <<"num:"<<num<<endl;
+//            }
+//        }
+//    }
+//    cout <<"num:"<<num<<endl;
 
     imshow("transmission",transmission);
 
