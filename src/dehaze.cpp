@@ -81,6 +81,8 @@ cv::Mat DeHaze::videoHazeRemove(const cv::Mat& I){
 //3-5ms
 cv::Vec3f DeHaze::estimateAtmosphericLight(){
 
+    double start = clock();
+
     Mat minChannel = calcMinChannel(I);
 
     double maxValue = 0;
@@ -108,12 +110,18 @@ cv::Vec3f DeHaze::estimateAtmosphericLight(){
     atmosphericLight[1] = static_cast<float> (mean.val[1]);
     atmosphericLight[2] = static_cast<float> (mean.val[2]);
 
+    double stop = clock();
+
     cout<<"atmosphericLight" << atmosphericLight << endl;
+    cout<<"估计大气光耗时："<<(stop - start)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
 
     return atmosphericLight;
 }
 
 cv::Mat DeHaze::estimateTransmission(){
+
+    double start = clock();
+
     CV_Assert(I.channels() == 3);
     vector<Mat> channels;
     split(I,channels);
@@ -127,7 +135,7 @@ cv::Mat DeHaze::estimateTransmission(){
 
     Mat darkChannel = calcDarkChannel(normalized,r);
 
-    imshow("dark channel",darkChannel);
+//    imshow("dark channel",darkChannel);
 
     transmission = 1.0 - omega * darkChannel;
 
@@ -142,6 +150,10 @@ cv::Mat DeHaze::estimateTransmission(){
     cvtColor(I,gray,CV_BGR2GRAY);
     //10ms左右
     transmission = fastGuidedFilter(gray, transmission, 8*r, 4, eps);
+
+    double stop = clock();
+
+    cout<<"估计透射率耗时："<<(stop - start)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
 
 //    imshow("transmission",transmission);
 
@@ -166,34 +178,7 @@ cv::Vec3f DeHaze::estimateAtmosphericLightVideo(){
 }
 
 cv::Mat DeHaze::estimateTransmissionVideo(){
-    CV_Assert(I.channels() == 3);
-    vector<Mat> channels;
-    split(I,channels);
-
-    channels[0] = channels[0]/atmosphericLight[0];
-    channels[1] = channels[1]/atmosphericLight[1];
-    channels[2] = channels[2]/atmosphericLight[2];
-
-    Mat normalized;
-    merge(channels,normalized);
-
-    Mat darkChannel = calcDarkChannel(normalized,r);
-
-    transmission = 1.0 - omega * darkChannel;
-//    imshow("transmission before filter",transmission);
-
-    //透射率修正
-    float k = 0.2;
-    transmission = min(max(k/abs(1-darkChannel),1).mul(transmission),1);
-
-    //导向滤波耗时30ms左右
-//    transmission = guidedFilter(I, transmission, 8*r, eps);
-
-    Mat gray;
-    cvtColor(I,gray,CV_BGR2GRAY);
-
-    //10ms左右
-    transmission = fastGuidedFilter(gray, transmission, 8*r, 4, eps);
+    estimateTransmission();
 
     //熵值 提高对比度
     //retinex
@@ -227,12 +212,13 @@ cv::Mat DeHaze::estimateTransmissionVideo(){
 //    }
 //    cout <<"num:"<<num<<endl;
 
-    imshow("transmission",transmission);
-
     return transmission;
 }
 
 cv::Mat DeHaze::recover(){
+
+    double start = clock();
+
     CV_Assert(I.channels() == 3 && I.depth() == CV_32F);
     vector<Mat> channels;
     split(I,channels);
@@ -246,8 +232,14 @@ cv::Mat DeHaze::recover(){
     Mat recover;
     merge(channels,recover);
 
+    pow(recover,0.7,recover);
     recover.convertTo(recover,CV_8UC3,255);
-    gammaCorrection(recover);//耗时较大 不过还是有必要的 10ms左右 可以考虑别的矫正方法YUV
+
+//    gammaCorrection(recover);//耗时较大 不过还是有必要的 7-10ms 可以考虑别的矫正方法YUV
+
+    double stop = clock();
+
+    cout<<"恢复图像耗时："<<(stop - start)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
 
     return recover;
 }
