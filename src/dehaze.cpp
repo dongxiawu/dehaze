@@ -13,48 +13,9 @@ using namespace std;
 void DeHaze::setFPS(int fps){
     this->fps = fps;
 }
-void DeHaze::gammaInit(float gmama){
-    for( int i = 0; i < 256; i++ )
-    {
-        look_up_table[i] = saturate_cast<uchar>(pow((float)(i/255.0), gmama) * 255.0f);
-    }
-}
-
-void DeHaze::gammaCorrection(cv::Mat& image){
-    CV_Assert(image.data);
-
-    // accept only char type matrices
-    CV_Assert(image.depth() != sizeof(uchar));
-
-//    dst = src.clone();
-    const int channels = image.channels();
-    switch(channels)
-    {
-        case 1:
-        {
-            MatIterator_<uchar> it, end;
-            for( it = image.begin<uchar>(), end = image.end<uchar>(); it != end; it++ )
-                *it = look_up_table[(*it)];
-            break;
-        }
-        case 3:
-        {
-            MatIterator_<Vec3b> it, end;
-            for( it = image.begin<Vec3b>(), end = image.end<Vec3b>(); it != end; it++ )
-            {
-                (*it)[0] = look_up_table[((*it)[0])];
-                (*it)[1] = look_up_table[((*it)[1])];
-                (*it)[2] = look_up_table[((*it)[2])];
-            }
-            break;
-        }
-    }
-}
 
 DeHaze::DeHaze(int r, double t0, double omega, double eps) : r(r), t0(t0), omega(omega), eps(eps)
 {
-    gammaInit(0.7);
-    atmosphericLight = Vec3f(0,0,0);
 }
 
 cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
@@ -70,6 +31,7 @@ cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
 
 cv::Mat DeHaze::videoHazeRemove(const cv::Mat& I){
     CV_Assert(I.channels() == 3);
+
     if (I.depth() != CV_32F){
         I.convertTo(this->I, CV_32F,1.0/255.0);
     }
@@ -139,12 +101,12 @@ cv::Mat DeHaze::estimateTransmission(){
 
     transmission = 1.0 - omega * darkChannel;
 
+    //导向滤波耗时30ms左右
+//    transmission = guidedFilter(src, transmission, 8*r, eps);
+
     //透射率修正
     float k = 0.3;
     transmission = min(max(k/abs(1-darkChannel),1).mul(transmission),1);
-
-    //导向滤波耗时30ms左右
-//    transmission = guidedFilter(src, transmission, 8*r, eps);
 
     Mat gray;
     cvtColor(I,gray,CV_BGR2GRAY);
@@ -178,41 +140,26 @@ cv::Vec3f DeHaze::estimateAtmosphericLightVideo(){
 }
 
 cv::Mat DeHaze::estimateTransmissionVideo(){
-    estimateTransmission();
+    if (preI.empty()){
+        preI = this->I.clone();
+        estimateTransmission();
+    } else{
+        Scalar mean,std;
+        Mat diff = abs(I-preI);
+        cv::meanStdDev(diff,mean,std);
+        if(std.val[0]+std.val[1]+std.val[2] >0.1){
+            estimateTransmission();
+            cout<<"estimateTransmission"<<endl;
+        }
+        preI = this->I.clone();
+        cout<<"std total:"<<std.val[0]+std.val[1]+std.val[2]<<endl;
+        imshow("diff",diff);
+    }
 
-    //熵值 提高对比度
-    //retinex
-//    int num = 0;
-////    //截断，这里应该处理  3-5ms
-//    for ( int i = 0; i < transmission.rows; i+=(2*r+1) ) {
-//        for (int j = 0; j < transmission.cols; j+=(2*r+1) ) {
-//            int w = (j+(2*r+1) < transmission.cols) ? 2*r+1 : transmission.cols-j;
-//            int h = (i+(2*r+1) < transmission.rows) ? 2*r+1 : transmission.rows-i;
-//            Mat roi(transmission,Rect(j,i,w,h));
-//
-//            //计算熵值
-//            cv::Scalar mean, std, score;
-//            meanStdDev(roi,mean,std);
-//            score = mean -std;
-//
-////            cout<<"std:"<<std<<endl;
-//
-//            if (std.val[0] < 0.012){
-//                num++;
-//                int x = j > 2*w ? j-2*w:0;
-//                int y = i > 2*h ? i-2*h:0;
-//                int ww = (x+2*r < transmission.cols) ? 2*r : transmission.cols-x;
-//                int hh = (y+2*r < transmission.rows) ? 2*r : transmission.rows-y;
-//                Mat filterRoi(transmission,Rect(x,y,ww,hh));
-//                GaussianBlur(filterRoi,filterRoi,Size(2*r+1,2*r+1),0,0);
-//                cout<<"(x,y)="<<j <<" "<< i<<endl;
-//                GaussianBlur(roi,roi,Size(2*r+1,2*r+1),0,0);
-//            }
-//        }
-//    }
-//    cout <<"num:"<<num<<endl;
+//    estimateTransmission();
 
     return transmission;
+
 }
 
 cv::Mat DeHaze::recover(){
@@ -225,6 +172,7 @@ cv::Mat DeHaze::recover(){
 
 //	Mat t = max(t0,transmission);
     Mat t = transmission;
+
     channels[0] = (channels[0]-atmosphericLight[0])/t + atmosphericLight[0];
     channels[1] = (channels[1]-atmosphericLight[1])/t + atmosphericLight[1];
     channels[2] = (channels[2]-atmosphericLight[2])/t + atmosphericLight[2];
@@ -232,10 +180,8 @@ cv::Mat DeHaze::recover(){
     Mat recover;
     merge(channels,recover);
 
-    pow(recover,0.7,recover);
+    pow(recover,0.7,recover);//3ms gamma矫正
     recover.convertTo(recover,CV_8UC3,255);
-
-//    gammaCorrection(recover);//耗时较大 不过还是有必要的 7-10ms 可以考虑别的矫正方法YUV
 
     double stop = clock();
 

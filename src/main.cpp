@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
 
     const string fileName = argv[1];
     const String saveFileName = argc >=3 ? argv[2] : "";
-//
-//    const string fileName = "images/canon3.bmp";
+
+//    const string fileName = "videos/hazeroad.avi";
 //    const String saveFileName = "";
 
 
@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
                 waitKey(0);
             }
             waitKey(max(int(frameInterval - costTime),1));
+//            cout<<"等待时间："<<max(int(frameInterval - costTime),1)<<"ms"<<endl;
             currentFrame++;
         }
 

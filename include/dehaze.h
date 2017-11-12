@@ -27,9 +27,6 @@ private:
     cv::Mat estimateTransmissionVideo();
     cv::Mat recover();
 
-    void gammaInit(float gmama);
-    void gammaCorrection(cv::Mat& image);
-
 private:
     //common
     int r;
@@ -41,7 +38,8 @@ private:
     unsigned char look_up_table[256];
 
     cv::Mat I;
-    cv::Vec3f atmosphericLight;
+    cv::Vec3f atmosphericLight = cv::Vec3f(0,0,0);
+    cv::Mat rough_transmission;
     cv::Mat transmission;
 
     //video
@@ -49,6 +47,7 @@ private:
     std::queue<cv::Vec3f> atmosphericLightQueue;
     cv::Mat preI;
     cv::Mat pre_transmission;
+    cv::Mat pre_rough_transmission;
 
     int fps;
 
