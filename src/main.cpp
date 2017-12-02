@@ -6,6 +6,8 @@ using namespace std;
 using namespace cv;
 
 int judgeFileType(string fileName);
+//评价图像
+void calcEvaluatingIndicator(const Mat& src);
 
 int main(int argc, char *argv[]) {
 
@@ -47,6 +49,8 @@ int main(int argc, char *argv[]) {
 
         DeHaze deHaze(filterRadius,t0,omega,eps);
         Mat recover = deHaze.imageHazeRemove(src);
+
+        calcEvaluatingIndicator(recover);
 
         //停止计时
         double stop = clock();
@@ -113,7 +117,7 @@ int main(int argc, char *argv[]) {
 
             double costTime = (stop-start)/CLOCKS_PER_SEC*1000;
             //输出耗时
-            cout<<"恢复图片耗时: "<< costTime <<"ms"<<endl;
+            cout<<"处理当前帧总耗时: "<< costTime <<"ms"<<endl;
 
             if (saveFileName.compare("")!=0){
                 videoWriter.write(result);
@@ -126,6 +130,7 @@ int main(int argc, char *argv[]) {
                 waitKey(0);
             }
             waitKey(max(int(frameInterval - costTime),1));
+//            waitKey(0);
 //            cout<<"等待时间："<<max(int(frameInterval - costTime),1)<<"ms"<<endl;
             currentFrame++;
         }
@@ -155,5 +160,74 @@ int judgeFileType(string fileName){
         return 1;
     }
     return -1;
+
+}
+
+//评价图像
+void calcEvaluatingIndicator(const Mat& src){
+    CV_Assert(src.type() == CV_8UC3);
+
+    //均值
+    Scalar mean;
+    //标准差
+    Scalar std;
+    meanStdDev(src,mean,std);
+
+    cout << "图像均值为：" <<  (mean.val[0] + mean.val[1] + mean.val[2])/3 << endl;
+    cout << "图像标准差为：" <<  (std.val[0] + std.val[1] + std.val[2])/3 << endl;
+
+    int border=1;
+    //边缘扩大
+    Mat borderTemp(src.rows + border*2, src.cols + border*2, src.depth());
+    copyMakeBorder(src, borderTemp, border, border,
+                   border, border, BORDER_REPLICATE);
+
+    double gradientSum = 0;
+
+    for (int i = 1; i < borderTemp.rows-1; ++i) {
+        for (int j = 1; j < borderTemp.cols-1; ++j) {
+            Vec3b valueX = borderTemp.at<Vec3b>(i,j-1);
+            Vec3b valueY = borderTemp.at<Vec3b>(i-1,j);
+            Vec3b value = borderTemp.at<Vec3b>(i,j);
+            gradientSum += sqrt((value[0] - valueX[0])*(value[0] - valueX[0])
+                                + (value[0] - valueY[0])*(value[0] - valueY[0]))
+                           + sqrt((value[1] - valueX[1])*(value[1] - valueX[1])
+                                  + (value[1] - valueY[1])*(value[1] - valueY[1]))
+                           + sqrt((value[2] - valueX[2])*(value[2] - valueX[2])
+                                  + (value[2] - valueY[2])*(value[2] - valueY[2]));
+        }
+    }
+
+    cout << "图像平均梯度为：" <<  gradientSum/src.cols/src.rows/src.channels() << endl;
+
+    //熵值(平均信息量)
+    double result = 0;
+    double pixelRate[256]={0};
+    Mat gray;
+
+    cvtColor(src,gray,COLOR_BGR2GRAY);
+
+    for (int i = 0; i < gray.rows; ++i) {
+        for (int j = 0; j < gray.cols; ++j) {
+            pixelRate[gray.at<uchar>(i,j)]++;
+        }
+    }
+
+    for(int i=0;i<256;i++)
+    {
+        pixelRate[i] = pixelRate[i]/(src.rows*src.cols);
+    }
+
+
+    // 根据定义计算图像熵
+    for(int i =0;i<256;i++)
+    {
+        if(pixelRate[i]==0.0)
+            result = result;
+        else
+            result = result-pixelRate[i]*(log(pixelRate[i])/log(2.0));
+    }
+
+    cout << "图像信息熵为：" <<  result << endl;
 
 }
