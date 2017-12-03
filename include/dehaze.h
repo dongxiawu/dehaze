@@ -38,6 +38,7 @@ private:
     unsigned char look_up_table[256];
 
     cv::Mat I;
+    cv::Mat I_YUV;
     cv::Vec3f atmosphericLight = cv::Vec3f(0,0,0);
     cv::Mat rough_transmission;
     cv::Mat transmission;

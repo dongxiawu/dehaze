@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
         DeHaze deHaze(filterRadius,t0,omega,eps);
         Mat recover = deHaze.imageHazeRemove(src);
 
-        calcEvaluatingIndicator(recover);
+//        calcEvaluatingIndicator(recover);
 
         //停止计时
         double stop = clock();

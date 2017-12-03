@@ -97,6 +97,10 @@ cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
     if (I.depth() != CV_32F){
         I.convertTo(this->I, CV_32F,1.0/255.0);
     }
+
+    cvtColor(I,this->I_YUV,COLOR_BGR2YUV);
+    this->I_YUV.convertTo(this->I_YUV, CV_32F,1.0/255.0);
+
     estimateAtmosphericLight();
     estimateTransmission();
     return recover();
@@ -160,20 +164,21 @@ cv::Mat DeHaze::estimateTransmission(){
 
     CV_Assert(I.channels() == 3);
     vector<Mat> channels;
-    split(I,channels);
+    split(I_YUV,channels);
 
-    channels[0] = channels[0]/atmosphericLight[0];
-    channels[1] = channels[1]/atmosphericLight[1];
-    channels[2] = channels[2]/atmosphericLight[2];
+    channels[0] = channels[0]/(atmosphericLight[0]*0.114 + atmosphericLight[1]*0.587 + atmosphericLight[2]*0.299);
+//    channels[1] = channels[1]/atmosphericLight[1];
+//    channels[2] = channels[2]/atmosphericLight[2];
 
-    Mat normalized;
-    merge(channels,normalized);
+//    Mat normalized;
+//    merge(channels,normalized);
 
-    Mat darkChannel = calcDarkChannel(normalized,r);
+//    Mat darkChannel = calcDarkChannel(normalized,r);
+    Mat darkChannel = calcDarkChannel(channels[0],r);
 
 //    imshow("dark channel",darkChannel);
 
-    transmission = 1.0 - omega * darkChannel;
+    transmission = 1 - omega * darkChannel;
 
     //导向滤波耗时30ms左右
 //    transmission = guidedFilter(src, transmission, 8*r, eps);
@@ -182,10 +187,10 @@ cv::Mat DeHaze::estimateTransmission(){
     float k = 0.3;
     transmission = min(max(k/abs(1-darkChannel),1).mul(transmission),1);
 
-    Mat gray;
-    cvtColor(I,gray,CV_BGR2GRAY);
+//    Mat gray;
+//    cvtColor(I,gray,CV_BGR2GRAY);
     //10ms左右
-    transmission = fastGuidedFilter(gray, transmission, 8*r, 4, eps);
+    transmission = fastGuidedFilter(channels[0], transmission, 8*r, 4, eps);
 
     double stop = clock();
 
@@ -267,6 +272,17 @@ cv::Mat DeHaze::recover(){
 
     pow(recover,0.7,recover);//3ms gamma矫正
     recover.convertTo(recover,CV_8UC3,255);
+
+//    for( int i = 0; i < 256; i++ )
+//    {
+//        look_up_table[i] = saturate_cast<uchar>(pow((float)(i/255.0), 0.7) * 255.0f);
+//    }
+//
+//    MatIterator_<uchar> it, end;
+//    for( it = recover.begin<uchar>(), end = recover.end<uchar>(); it != end; it++ )
+//    {
+//        *it = look_up_table[*it];
+//    }
 
     double stop = clock();
 
