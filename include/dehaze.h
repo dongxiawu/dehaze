@@ -45,6 +45,8 @@ private:
     cv::Mat rough_transmission;
     cv::Mat transmission;
 
+    cv::Mat* trans;
+
     //video
     cv::Vec3f atmosphericLightSum;
     std::queue<cv::Vec3f> atmosphericLightQueue;

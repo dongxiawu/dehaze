@@ -19,21 +19,22 @@ DeHaze::DeHaze(int r, double t0, double omega, double eps) : r(r), t0(t0), omega
     {
         look_up_table[i] = saturate_cast<uchar>(pow((float)(i/255.0), 0.7) * 255.0f);
     }
-    lookUpTable =Mat(1, 256, CV_8U);
+    lookUpTable = Mat(1, 256, CV_8U);
     uchar* p = lookUpTable.ptr();
-    for( int i = 0; i < 256; ++i)
+    for( int i = 0; i < 256; ++i){
         p[i] = look_up_table[i];
+    }
+
 }
 
 cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
 {
     CV_Assert(I.channels() == 3);
     if (I.depth() != CV_32F){
-        I.convertTo(this->I, CV_32F,1.0/255.0);
+        I.convertTo(this->I, CV_32F);
     }
 
-    cvtColor(I,this->I_YUV,COLOR_BGR2YUV);
-    this->I_YUV.convertTo(this->I_YUV, CV_32F,1.0/255.0);
+    cvtColor(this->I,this->I_YUV,COLOR_BGR2YUV);
 
     estimateAtmosphericLight();
     estimateTransmission();
@@ -44,8 +45,9 @@ cv::Mat DeHaze::videoHazeRemove(const cv::Mat& I){
     CV_Assert(I.channels() == 3);
 
     if (I.depth() != CV_32F){
-        I.convertTo(this->I, CV_32F,1.0/255.0);
+        I.convertTo(this->I, CV_32F);
     }
+    cvtColor(this->I,this->I_YUV,COLOR_BGR2YUV);
 
     estimateAtmosphericLightVideo();
     estimateTransmissionVideo();
@@ -100,6 +102,7 @@ cv::Mat DeHaze::estimateTransmission(){
     vector<Mat> channels;
     split(I_YUV,channels);
 
+
     channels[0] = channels[0]/(atmosphericLight[0]*0.114 + atmosphericLight[1]*0.587 + atmosphericLight[2]*0.299);
 //    channels[1] = channels[1]/atmosphericLight[1];
 //    channels[2] = channels[2]/atmosphericLight[2];
@@ -153,34 +156,26 @@ cv::Vec3f DeHaze::estimateAtmosphericLightVideo(){
 }
 
 cv::Mat DeHaze::estimateTransmissionVideo(){
-    if (preI.empty()){
-        preI = this->I.clone();
-        estimateTransmission();
-    } else{
-        Scalar mean,std;
-//        Mat diff = abs(I-preI);
-        Mat diff;
-        absdiff(I,preI,diff);
-        cv::meanStdDev(diff,mean,std);
-//        cout << std.val[0]+std.val[1]+std.val[2] << endl;
-        if(std.val[0]+std.val[1]+std.val[2] >0.01){
-            estimateTransmission();
-            cout<<"estimateTransmission"<<endl;
-        }
-        preI = this->I.clone();
-        cout<<"std total:"<<std.val[0]+std.val[1]+std.val[2]<<endl;
-        imshow("diff",diff);
-    }
+//    if (preI.empty()){
+//        preI = this->I.clone();
+//        estimateTransmission();
+//    } else{
+//        Scalar mean,std;
+////        Mat diff = abs(I-preI);
+//        Mat diff;
+//        absdiff(I,preI,diff);
+//        cv::meanStdDev(diff,mean,std);
+////        cout << std.val[0]+std.val[1]+std.val[2] << endl;
+//        if(std.val[0]+std.val[1]+std.val[2] >0.01){
+//            estimateTransmission();
+//            cout<<"estimateTransmission"<<endl;
+//        }
+//        preI = this->I.clone();
+//        cout<<"std total:"<<std.val[0]+std.val[1]+std.val[2]<<endl;
+//        imshow("diff",diff);
+//    }
 
-//    Mat I_temp,preI_temp;
-//    I.convertTo(I_temp,CV_8UC3,255);
-//    preI.convertTo(preI_temp,CV_8UC3,255);
-//    cout << "different:"<< getPSNR(I,preI) << endl;
-
-
-//    Scalar diff = getMSSIM(I,preI);
-//    cout << "different:"<< diff*100 << endl;
-//    estimateTransmission();
+    estimateTransmission();
 
     return transmission;
 
@@ -194,7 +189,6 @@ cv::Mat DeHaze::recover(){
     vector<Mat> channels;
     split(I,channels);
 
-//	Mat t = max(t0,transmission);
     Mat t = transmission;
 
     channels[0] = (channels[0]-atmosphericLight[0])/t + atmosphericLight[0];
@@ -204,9 +198,9 @@ cv::Mat DeHaze::recover(){
     Mat recover;
     merge(channels,recover);
 
-    recover.convertTo(recover,CV_8UC3,255);
+    recover.convertTo(recover,CV_8U);
 
-    //可能可以去掉
+    //
     LUT(recover,lookUpTable,recover);
 
     double stop = clock();
