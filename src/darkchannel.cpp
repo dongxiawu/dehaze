@@ -26,7 +26,7 @@ cv::Mat calcDarkChannel(const cv::Mat& src, int r)
 {
     Mat minChannel = calcMinChannel(src);
 
-    Mat kernel = getStructuringElement(MORPH_RECT,Size(r,r));
+    Mat kernel = getStructuringElement(MORPH_RECT,Size(2*r+1,2*r+1));
 
     Mat darkChannel;
     erode(minChannel,darkChannel,kernel);

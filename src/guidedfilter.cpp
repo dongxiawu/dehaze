@@ -4,7 +4,8 @@
 static cv::Mat boxfilter(const cv::Mat &I, int r)
 {
 	cv::Mat result;
-	cv::blur(I, result, cv::Size(r, r));
+    //均值滤波
+	cv::blur(I, result, cv::Size(2*r+1, 2*r+1));
 	return result;
 }
 
@@ -196,9 +197,9 @@ GuidedFilter::GuidedFilter(const cv::Mat &I, int r, double eps)
 	CV_Assert(I.channels() == 1 || I.channels() == 3);
 
 	if (I.channels() == 1)
-		impl_ = new GuidedFilterMono(I, 2 * r + 1, eps);
+		impl_ = new GuidedFilterMono(I, r, eps);
 	else
-		impl_ = new GuidedFilterColor(I, 2 * r + 1, eps);
+		impl_ = new GuidedFilterColor(I,r, eps);
 }
 
 GuidedFilter::~GuidedFilter()
