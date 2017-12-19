@@ -15,16 +15,7 @@ void DeHaze::setFPS(int fps){
 
 DeHaze::DeHaze(int r, double t0, double omega, double eps) : r(r), t0(t0), omega(omega), eps(eps)
 {
-    for( int i = 0; i < 256; i++ )
-    {
-        look_up_table[i] = saturate_cast<uchar>(pow((float)(i/255.0), 0.7) * 255.0f);
-    }
-    lookUpTable = Mat(1, 256, CV_8U);
-    uchar* p = lookUpTable.ptr();
-    for( int i = 0; i < 256; ++i){
-        p[i] = look_up_table[i];
-    }
-
+    initGammaLookUpTable(0.7);
 }
 
 cv::Mat DeHaze::imageHazeRemove(const cv::Mat& I)
@@ -201,11 +192,19 @@ cv::Mat DeHaze::recover(){
     recover.convertTo(recover,CV_8U);
 
     //
-    LUT(recover,lookUpTable,recover);
+    LUT(recover,mGammaLookUpTable,recover);
 
     double stop = clock();
 
     cout<<"恢复图像耗时："<<(stop - start)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
 
     return recover;
+}
+
+void DeHaze::initGammaLookUpTable(double gamma){
+    mGammaLookUpTable = Mat(1, 256, CV_8U);
+    uchar* p = mGammaLookUpTable.ptr();
+    for( int i = 0; i < 256; ++i){
+        p[i] = saturate_cast<uchar>(pow((i/255.0), gamma) * 255.0);
+    }
 }

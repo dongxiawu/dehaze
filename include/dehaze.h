@@ -27,6 +27,8 @@ private:
     cv::Mat estimateTransmissionVideo();
     cv::Mat recover();
 
+    void initGammaLookUpTable(double gamma);
+
 private:
     //common
     int r;
@@ -34,11 +36,7 @@ private:
     double omega;
     double eps;
 
-
-    unsigned char look_up_table[256];
-
-
-    cv::Mat lookUpTable;
+    cv::Mat mGammaLookUpTable;
     cv::Mat I;
     cv::Mat I_YUV;
     cv::Vec3f atmosphericLight = cv::Vec3f(0,0,0);
